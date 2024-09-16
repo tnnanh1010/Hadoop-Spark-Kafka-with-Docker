@@ -6,16 +6,6 @@ import json
 import base64
 import shutil
 
-# Configuration for Spark
-conf = SparkConf()
-conf.setAll([
-    ("spark.jars.packages", "org.apache.hadoop:hadoop-aws:3.3.2,com.amazonaws:aws-java-sdk-bundle:1.11.1026"),
-    ("spark.hadoop.fs.s3a.access.key", "AKIAQE43J2RFUTDUNFMK"),
-    ("spark.hadoop.fs.s3a.secret.key", "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"),
-    ("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem"),
-    ("spark.hadoop.fs.s3a.endpoint", "s3.amazonaws.com"),
-    ("spark.hadoop.fs.s3a.path.style.access", "true"),
-])
 
 # Initialize SparkSession
 spark = SparkSession.builder \
