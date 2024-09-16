@@ -1,0 +1,114 @@
+services:
+
+  zookeeper_hadoop:
+    image: zookeeper:3.6.1
+    container_name: zookeeper_hadoop
+    expose:
+      - "2181"
+    volumes:
+      - kafka_zookeeper_hadoop:/opt/zookeeper-3.6.1/data
+    networks:
+      kafkanet:
+        ipv4_address: 172.25.0.11
+
+  kafka_producer:
+    image: wurstmeister/kafka:2.12-2.2.0
+    container_name: kafka_producer
+    command: [start-kafka.sh]
+    expose:
+      - "8080"
+      - "9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 172.25.0.12
+      KAFKA_ZOOKEEPER_CONNECT: 172.25.0.11:2181
+      KAFKA_ADVERTISED_PORT: 9092
+    volumes:
+      - kafka_kafka_producer:/opt/kafka_2.12-2.2.0/logs
+    networks:
+      kafkanet:
+        ipv4_address: 172.25.0.12
+    depends_on:
+      - "zookeeper_hadoop"
+
+  kafka_consumer:
+    image: wurstmeister/kafka:2.12-2.2.0
+    container_name: kafka_consumer
+    command: [start-kafka.sh]
+    expose:
+      - "8080"
+      - "9092"
+    environment:
+      KAFKA_ADVERTISED_HOST_NAME: 172.25.0.13
+      KAFKA_ZOOKEEPER_CONNECT: 172.25.0.11:2181
+      KAFKA_ADVERTISED_PORT: 9092
+    volumes:
+      - kafka_kafka_consumer:/opt/kafka_2.12-2.2.0/logs
+    depends_on:
+      - "zookeeper_hadoop"
+    networks:
+      kafkanet:
+        ipv4_address: 172.25.0.13
+
+  spark_hadoop:
+    image: gettyimages/spark:2.4.1-hadoop-3.0
+    container_name: spark_hadoop
+    # command: [run.sh]
+    volumes:
+      - ./:/app
+    networks:
+      kafkanet:
+        ipv4_address: 172.25.0.14
+    depends_on:
+      - namenode
+
+  namenode:
+    image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
+    container_name: namenode
+    restart: always
+    environment:
+      - CLUSTER_NAME=hadoop-cluster
+    env_file:
+      - ./hadoop.env
+    ports:
+      - "9870:9870"  # Namenode web UI
+      - "9000:9000"  # Namenode IPC port
+    volumes:
+      - hadoop_namenode:/hadoop/dfs/namenode
+    networks:
+      kafkanet:
+        ipv4_address: 172.25.0.15
+
+  datanode:
+    image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
+    container_name: datanode
+    restart: always
+    environment:
+      - CLUSTER_NAME=hadoop-cluster
+      # - SERVICE_PRECONDITION=namenode:9870
+    env_file:
+      - ./hadoop.env
+    volumes:
+      - hadoop_datanode:/hadoop/dfs/datanode
+    ports:
+      - "9864:9864"  # Datanode web UI
+    networks:
+      kafkanet:
+        ipv4_address: 172.25.0.16
+    depends_on:
+      - namenode
+
+networks:
+  kafkanet:
+    name: kafkanet
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.25.0.0/16
+
+volumes:
+  kafka_zookeeper_hadoop:
+  kafka_kafka_producer:
+  kafka_kafka_consumer:
+  hadoop_namenode:
+  hadoop_datanode:
